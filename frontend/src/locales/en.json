@@ -154,8 +154,8 @@
     "playing4": "Once every match in a round is complete, the next round opens.",
     "playoffsTitle": "🥇 Playoffs",
     "playoffs1": "The top 8 players qualify and are seeded from the round-robin standings.",
-    "playoffs2": "Quarter finals: 1st vs 8th, 2nd vs 7th, 3rd vs 6th, 4th vs 5th.",
-    "playoffs3": "Winners advance to semi finals, then a final for the champion."
+    "playoffs2": "Quarter finals: first vs last (1st vs 8th) and 4th vs 5th; the rest pair as 2nd vs 7th and 3rd vs 6th.",
+    "playoffs3": "The winner of 1st vs 8th plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the winner of 3rd vs 6th. The two semi-final winners meet in the final."
   },
   "matchCard": {
     "round": "Round {{round}}",

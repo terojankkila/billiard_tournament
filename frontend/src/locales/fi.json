@@ -154,8 +154,8 @@
     "playing4": "Kun kierroksen kaikki ottelut on pelattu, seuraava kierros avautuu.",
     "playoffsTitle": "🥇 Pudotuspelit",
     "playoffs1": "8 parasta pelaajaa selviytyvät pudotuspeleihin ja asetetaan runkosarjan sijoituksen mukaan.",
-    "playoffs2": "Puolivälierät: 1. vs 8., 2. vs 7., 3. vs 6., 4. vs 5.",
-    "playoffs3": "Voittajat etenevät välieriin ja sitten finaaliin, jossa ratkaistaan mestari."
+    "playoffs2": "Puolivälierät: ensimmäinen kohtaa viimeisen (1. vs 8.) ja 4. kohtaa 5.; loput parit ovat 2. vs 7. ja 3. vs 6.",
+    "playoffs3": "1. vs 8. -ottelun voittaja pelaa 4. vs 5. -ottelun voittajaa vastaan, ja 2. vs 7. -ottelun voittaja kohtaa 3. vs 6. -ottelun voittajan. Välierien voittajat pelaavat finaalin."
   },
   "matchCard": {
     "round": "Kierros {{round}}",

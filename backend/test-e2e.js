@@ -276,6 +276,15 @@ async function run() {
   console.log('Semi finals created:', sf.length, '(expected 2)');
   if (sf.length !== 2) throw new Error('Expected 2 semi final matches');
 
+  // Verify the bracket pairing: winner(1v8) vs winner(4v5), winner(2v7) vs winner(3v6)
+  const qfDone = tMatches.filter(m => m.round === 'quarter_final');
+  const qfWinner = qfDone.reduce((map, m) => { map[m.match_order] = m.winner_id; return map; }, {});
+  const sfPlayerSets = sf.map(m => new Set([m.player1_id, m.player2_id]));
+  const hasPair = (a, b) => sfPlayerSets.some(s => s.has(a) && s.has(b));
+  if (!hasPair(qfWinner[1], qfWinner[4])) throw new Error('Semi finals: winner(1v8) should meet winner(4v5)');
+  if (!hasPair(qfWinner[2], qfWinner[3])) throw new Error('Semi finals: winner(2v7) should meet winner(3v6)');
+  console.log('Semi final pairing verified: (1v8) winner vs (4v5) winner, (2v7) winner vs (3v6) winner');
+
   // Complete semi finals
   for (const m of sf) {
     await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });

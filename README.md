@@ -9,7 +9,7 @@ Full-stack application for managing billiard tournaments with round-robin play, 
 - **Player Management**: Select existing players or create new ones
 - **Round Robin (by Rounds)**: Split into rounds — each player plays exactly one match per round, facing every other player once
 - **Scoring System**: Per-frame entry. Frame wins = 1 point, match win (best of 5) = 1 additional point
-- **Playoffs**: Top 8 players advance, seeded 1v8, 2v7, 3v6, 4v5
+- **Playoffs**: Top 8 players advance. First meets last (1v8), the 1v8 winner plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the winner of 3rd vs 6th; the two semi-final winners meet in the final
 - **Editable Results**: Results entered per-frame; individual frames can be edited/deleted to fix errors
 - **Performance Analytics**: Charts showing player performance in current tournament and across all tournaments
 - **Public Viewing**: Anyone can view tournaments, standings, matches, and results

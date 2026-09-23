@@ -404,12 +404,12 @@ async function recomputeMatch(client, matchId) {
         if (round === 'quarter_final') {
           await queries.matches.insertSimple(
             client, tournament_id,
-            roundMatches.rows[0].winner_id, roundMatches.rows[1].winner_id,
+            roundMatches.rows[0].winner_id, roundMatches.rows[3].winner_id,
             'semi_final', 1
           );
           await queries.matches.insertSimple(
             client, tournament_id,
-            roundMatches.rows[2].winner_id, roundMatches.rows[3].winner_id,
+            roundMatches.rows[1].winner_id, roundMatches.rows[2].winner_id,
             'semi_final', 2
           );
         } else {

@@ -111,7 +111,12 @@ function RulesPage() {
         <ul className="list-disc list-inside space-y-1">
           <li>{t('rules.playoffs1')}</li>
           <li>{t('rules.playoffs2')}</li>
-          <li>{t('rules.playoffs3')}</li>
+          <li>
+            <Trans i18nKey="rules.playoffs3">
+              The winner of 1st vs 8th plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the
+              winner of 3rd vs 6th. The two semi-final winners meet in the final.
+            </Trans>
+          </li>
         </ul>
       </Section>
     </div>
