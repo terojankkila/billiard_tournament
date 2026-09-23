@@ -7,9 +7,10 @@ Full-stack application for managing billiard tournaments with round-robin play, 
 - **Admin Authentication**: Only admins can create tournaments. Default admin credentials set in `.env`, admins can manage other admin users and change their own passwords.
 - **Tournament Creation**: Admins create tournaments with an admin password for player-facing access
 - **Player Management**: Select existing players or create new ones
-- **Round Robin (by Rounds)**: Split into rounds — each player plays exactly one match per round, facing every other player once
+- **Round Robin (by Rounds)**: Split into rounds — each player plays exactly one match per round, facing every other player once. When the tournament is split into divisions, players only play within their own division
+- **Divisions (optional)**: Admins can randomly split a tournament into two divisions (A and B). The split is previewed before saving, players can be moved between the divisions while previewing, and unbalanced groups give one division one extra player. Standings are shown per division
 - **Scoring System**: Per-frame entry. Frame wins = 1 point, match win (best of 5) = 1 additional point
-- **Playoffs**: Top 8 players advance. First meets last (1v8), the 1v8 winner plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the winner of 3rd vs 6th; the two semi-final winners meet in the final
+- **Playoffs**: Without divisions the top 8 advance, first meets last (1v8), the 1v8 winner plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the winner of 3rd vs 6th. With divisions, the top 2 of each division advance directly and the 3rd vs 4th of the other division qualify; the two semi-final winners meet in the final
 - **Editable Results**: Results entered per-frame; individual frames can be edited/deleted to fix errors
 - **Performance Analytics**: Charts showing player performance in current tournament and across all tournaments
 - **Public Viewing**: Anyone can view tournaments, standings, matches, and results
@@ -234,11 +235,12 @@ kubectl delete namespace billiard
 3. Create a tournament (name + player-facing password)
 4. Access the tournament with the password
 5. Add players (from existing list or create new ones)
-6. Start the tournament - round-robin matches are generated in rounds (each player plays once per round)
-7. Enter match results frame by frame; frames can be edited/deleted to fix errors
-8. When all round-robin matches are complete, start the playoffs
-9. View player performance graphs on the Performance page
-10. Manage other admins and change your password in the Admin Panel
+6. Optional: split the tournament into two divisions — preview the random split, move players between the divisions, then accept to save it (with divisions, round-robin matches are played within each division only)
+7. Start the tournament - round-robin matches are generated in rounds (each player plays once per round)
+8. Enter match results frame by frame; frames can be edited/deleted to fix errors
+9. When all round-robin matches are complete, start the playoffs (top 8 overall, or per division: top 2 of each advance directly and the 3rd/4th qualify cross-division)
+10. View player performance graphs on the Performance page
+11. Manage other admins and change your password in the Admin Panel
 
 ## Points System
 

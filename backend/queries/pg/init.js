@@ -39,6 +39,7 @@ module.exports = {
 
     `ALTER TABLE matches ADD COLUMN IF NOT EXISTS round_number INTEGER;`,
     `ALTER TABLE matches ADD COLUMN IF NOT EXISTS is_started BOOLEAN DEFAULT FALSE;`,
+    `ALTER TABLE tournament_players ADD COLUMN IF NOT EXISTS division VARCHAR(2);`,
 
     `CREATE TABLE IF NOT EXISTS frames (
       id SERIAL PRIMARY KEY,

@@ -320,6 +320,126 @@ async function run() {
   }
   console.log('All-players stats:', allStats.length, 'players, top:', allStats[0].name, `${allStats[0].matches_won} wins, ${allStats[0].match_win_pct}% match win, ${allStats[0].frame_win_pct}% frame win`);
 
+  // --- Division format scenario ---
+  console.log('\n=== Division format ===');
+  const divT = await request('/tournaments', 'POST', { name: 'Division Test', password: 'divpass' });
+  await request(`/tournaments/${divT.id}/players`, 'POST', { playerIds });
+  T_TOKEN = null;
+
+  // Preview: random, balanced split, persisted nowhere yet
+  const preview = await request(`/tournaments/${divT.id}/divisions/preview`, 'POST');
+  if (!Array.isArray(preview.A) || !Array.isArray(preview.B)) throw new Error('Preview must return two divisions');
+  if (preview.A.length + preview.B.length !== 8) throw new Error('Preview must cover all 8 players');
+  if (Math.abs(preview.A.length - preview.B.length) > 1) throw new Error('Preview divisions must be balanced');
+  console.log(`Division preview OK: A=${preview.A.length} B=${preview.B.length}`);
+  const beforeSave = await request(`/tournaments/${divT.id}/players`);
+  if (beforeSave.some(p => p.division)) throw new Error('Preview must not persist divisions to the database');
+  console.log('Preview does not persist OK');
+
+  // Move a player between divisions while previewing, then save the swap
+  const moved = preview.A[preview.A.length - 1];
+  const swapFrom = preview.B.find(p => p !== moved);
+  const swappedA = preview.A.filter(p => p !== moved).concat(swapFrom);
+  const swappedB = preview.B.filter(p => p !== swapFrom).concat(moved);
+  const assignments = [
+    ...swappedA.map(player_id => ({ player_id, division: 'A' })),
+    ...swappedB.map(player_id => ({ player_id, division: 'B' })),
+  ];
+  const saved = await request(`/tournaments/${divT.id}/divisions`, 'PUT', { assignments });
+  if (saved.find(p => p.id === moved).division !== 'B') throw new Error('Moved player was not saved to division B');
+  if (saved.find(p => p.id === swapFrom).division !== 'A') throw new Error('Moved player was not saved to division A');
+  console.log('Move player between divisions before saving OK');
+
+  // Unbalanced saves must be rejected (and nothing persisted)
+  try {
+    await request(`/tournaments/${divT.id}/divisions`, 'PUT', {
+      assignments: playerIds.map((p, i) => ({ player_id: p, division: i < 6 ? 'A' : 'B' })),
+    });
+    throw new Error('Unbalanced division save should have failed');
+  } catch (e) {
+    if (!/balanced/i.test(e.message)) throw e;
+    console.log('Unbalanced division save blocked OK');
+  }
+
+  // Round robin must stay inside each division
+  await request(`/tournaments/${divT.id}/start`, 'POST');
+  let divMatches = await request(`/tournaments/${divT.id}/matches`);
+  let divRr = divMatches.filter(m => m.round === 'round_robin');
+  if (divRr.length !== 12) throw new Error(`Expected 12 round-robin matches (6 per division), got ${divRr.length}`);
+  const playersWithDiv = await request(`/tournaments/${divT.id}/players`);
+  const divOf = Object.fromEntries(playersWithDiv.map(p => [p.id, p.division]));
+  for (const m of divRr) {
+    if (divOf[m.player1_id] !== divOf[m.player2_id]) throw new Error('Round-robin match crosses divisions');
+  }
+  console.log('Intra-division round robin OK:', divRr.length, 'matches');
+
+  // Complete round robin: the higher-id player always wins (distinct standings)
+  for (const m of divRr) {
+    const p1Wins = m.player1_id > m.player2_id;
+    await request(`/matches/${m.id}`, 'PUT', p1Wins
+      ? { player1_frames: 3, player2_frames: 1 }
+      : { player1_frames: 1, player2_frames: 3 });
+  }
+  const divStandings = await request(`/tournaments/${divT.id}/standings`);
+  const divA = divStandings.filter(s => s.division === 'A');
+  const divB = divStandings.filter(s => s.division === 'B');
+  if (divA.length !== 4 || divB.length !== 4) throw new Error('Standings must contain 4 players per division');
+  if (divA.map(s => s.rank).join() !== '1,2,3,4' || divB.map(s => s.rank).join() !== '1,2,3,4') {
+    throw new Error('Standings ranks must be per division (1-4)');
+  }
+  const byId = Object.fromEntries(divStandings.map(s => [s.player_id, s]));
+  const labelOf = (id) => `${byId[id].division}${byId[id].rank}`;
+  console.log('Per-division standings OK');
+
+  // Playoffs: top 2 of each division advance directly, 3rd/4th qualify cross-division
+  await request(`/tournaments/${divT.id}/playoffs`, 'POST');
+  divMatches = await request(`/tournaments/${divT.id}/matches`);
+  const playIns = divMatches.filter(m => m.round === 'play_in').sort((a, b) => a.match_order - b.match_order);
+  if (playIns.length !== 2) throw new Error(`Expected 2 play-in matches, got ${playIns.length}`);
+  playIns.forEach((m, i) => {
+    const labels = [m.player1_id, m.player2_id].map(labelOf).sort().join(',');
+    const expected = i === 0 ? 'A3,B4' : 'A4,B3';
+    if (labels !== expected) throw new Error(`Play-in ${i + 1}: got ${labels}, expected ${expected}`);
+  });
+  console.log('Play-in qualification OK: A3 vs B4, A4 vs B3');
+
+  // Play-in winners join the division runners-up in the quarter finals
+  for (const m of playIns) {
+    await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  }
+  divMatches = await request(`/tournaments/${divT.id}/matches`);
+  const playInWinners = playIns.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
+  let qfs = divMatches.filter(m => m.round === 'quarter_final').sort((a, b) => a.match_order - b.match_order);
+  if (qfs.length !== 2) throw new Error(`Expected 2 quarter finals, got ${qfs.length}`);
+  if (labelOf(qfs[0].player1_id) !== 'A2' || qfs[0].player2_id !== playInWinners[0]) throw new Error('Quarter final 1 must be 2A vs play-in 1 winner');
+  if (labelOf(qfs[1].player1_id) !== 'B2' || qfs[1].player2_id !== playInWinners[1]) throw new Error('Quarter final 2 must be 2B vs play-in 2 winner');
+  console.log('Quarter finals seeded from division standings OK');
+
+  // Division winners enter the semi finals
+  for (const m of qfs) {
+    await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  }
+  divMatches = await request(`/tournaments/${divT.id}/matches`);
+  const qfWinners = qfs.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
+  const sfs = divMatches.filter(m => m.round === 'semi_final').sort((a, b) => a.match_order - b.match_order);
+  if (sfs.length !== 2) throw new Error(`Expected 2 semi finals, got ${sfs.length}`);
+  if (labelOf(sfs[0].player1_id) !== 'A1' || sfs[0].player2_id !== qfWinners[0]) throw new Error('Semi final 1 must be 1A vs quarter final 1 winner');
+  if (labelOf(sfs[1].player1_id) !== 'B1' || sfs[1].player2_id !== qfWinners[1]) throw new Error('Semi final 2 must be 1B vs quarter final 2 winner');
+  console.log('Semi finals pair division winners with quarter-final winners OK');
+
+  for (const m of sfs) {
+    await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  }
+  divMatches = await request(`/tournaments/${divT.id}/matches`);
+  const sfWinners = sfs.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
+  const divFinal = divMatches.filter(m => m.round === 'final');
+  if (divFinal.length !== 1) throw new Error(`Expected 1 final, got ${divFinal.length}`);
+  if (divFinal[0].player1_id !== sfWinners[0] || divFinal[0].player2_id !== sfWinners[1]) throw new Error('Final must pair the semi-final winners');
+  await request(`/matches/${divFinal[0].id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  const divTourneyDone = await request(`/tournaments/${divT.id}`);
+  if (divTourneyDone.status !== 'completed') throw new Error('Division tournament should be completed');
+  console.log('Division tournament completed OK');
+
   console.log('\n✅ ALL E2E TESTS PASSED');
 }
 

@@ -336,7 +336,67 @@ app.post('/api/tournaments/:id/players', requireEditAccess, async (req, res) => 
 
 app.get('/api/tournaments/:id/players', async (req, res) => {
   try {
-    const result = await queries.tournamentPlayers.list(pool, req.params.id);
+    const result = await queries.tournamentPlayers.listWithDivision(pool, req.params.id);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---- Division routes ----
+// Returns a random two-way split of the tournament's players WITHOUT persisting
+// it. The admin previews and adjusts it, then saves via PUT /divisions.
+app.post('/api/tournaments/:id/divisions/preview', requireEditAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playersResult = await queries.tournamentPlayers.getPlayerIds(pool, id);
+    const playerIds = playersResult.rows.map(r => r.player_id);
+    if (playerIds.length < 8) {
+      return res.status(400).json({ error: 'Need at least 8 players to split the tournament into two divisions' });
+    }
+    const shuffled = shuffle(playerIds);
+    const half = Math.ceil(shuffled.length / 2);
+    const divisions = { A: [], B: [] };
+    shuffled.forEach((playerId, i) => {
+      divisions[i < half ? 'A' : 'B'].push(playerId);
+    });
+    res.json(divisions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Saves the final division assignments, replacing any previously saved ones.
+app.put('/api/tournaments/:id/divisions', requireEditAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { assignments } = req.body;
+    if (!Array.isArray(assignments) || assignments.length === 0) {
+      return res.status(400).json({ error: 'assignments are required' });
+    }
+    const playersResult = await queries.tournamentPlayers.getPlayerIds(pool, id);
+    if (playersResult.rows.length !== assignments.length) {
+      return res.status(400).json({ error: 'Every tournament player must be assigned to a division' });
+    }
+    const validPlayerIds = new Set(playersResult.rows.map(r => r.player_id));
+    const counts = { A: 0, B: 0 };
+    for (const a of assignments) {
+      if (!validPlayerIds.has(a.player_id) || !['A', 'B'].includes(a.division)) {
+        return res.status(400).json({ error: 'Invalid player or division in assignments' });
+      }
+      counts[a.division]++;
+    }
+    if (Math.abs(counts.A - counts.B) > 1) {
+      return res.status(400).json({ error: 'Divisions must be balanced (at most one player difference)' });
+    }
+    if (counts.A < 4 || counts.B < 4) {
+      return res.status(400).json({ error: 'Each division needs at least 4 players for the playoffs' });
+    }
+    await queries.tournamentPlayers.clearDivisions(pool, id);
+    for (const a of assignments) {
+      await queries.tournamentPlayers.setDivision(pool, id, a.player_id, a.division);
+    }
+    const result = await queries.tournamentPlayers.listWithDivision(pool, id);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -351,17 +411,29 @@ app.post('/api/tournaments/:id/start', requireEditAccess, async (req, res) => {
     if (playersResult.rows.length < 2) {
       return res.status(400).json({ error: 'Need at least 2 players to start tournament' });
     }
-    const players = playersResult.rows;
-    const rounds = generateRoundRobinRounds(players);
+    const dividedResult = await queries.tournamentPlayers.hasDivisions(pool, id);
+    const divided = dividedResult.rows[0].count > 0;
+    if (divided && dividedResult.rows[0].count !== playersResult.rows.length) {
+      return res.status(400).json({ error: 'Some players are not assigned to a division. Split the divisions again before starting.' });
+    }
     let matchIndex = 0;
-    for (let r = 0; r < rounds.length; r++) {
-      for (const { player1_id, player2_id } of rounds[r]) {
-        matchIndex++;
-        await queries.matches.insert(pool, id, player1_id, player2_id, 'round_robin', r + 1, matchIndex);
+    let totalRounds = 0;
+    const divisions = divided ? ['A', 'B'] : [null];
+    for (const division of divisions) {
+      const players = division
+        ? (await queries.tournamentPlayers.getDivisionIds(pool, id, division)).rows
+        : playersResult.rows;
+      const rounds = generateRoundRobinRounds(players);
+      totalRounds = Math.max(totalRounds, rounds.length);
+      for (let r = 0; r < rounds.length; r++) {
+        for (const { player1_id, player2_id } of rounds[r]) {
+          matchIndex++;
+          await queries.matches.insert(pool, id, player1_id, player2_id, 'round_robin', r + 1, matchIndex);
+        }
       }
     }
     await queries.tournaments.updateStatus(pool, 'round_robin', id);
-    res.json({ message: 'Tournament started', rounds: rounds.length });
+    res.json({ message: 'Tournament started', rounds: totalRounds });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -396,9 +468,60 @@ async function recomputeMatch(client, matchId) {
 
   await queries.matches.updateScores(client, player1_frames, player2_frames, winner_id, status, matchId);
 
+  const advanceDivisionRound = async (tId, completedRound) => {
+    const roundMatches = await queries.matches.getByTournamentAndRound(client, tId, completedRound);
+    if (!roundMatches.rows.every(m => m.status === 'completed')) return;
+    const ordered = roundMatches.rows;
+
+    if (completedRound === 'play_in') {
+      const topA = await queries.stats.getDivisionTopN(client, tId, 'A', 2);
+      const topB = await queries.stats.getDivisionTopN(client, tId, 'B', 2);
+      // Quarter finals: each division's runner-up hosts the play-in winner from its half.
+      await queries.matches.insertSimple(
+        client, tId,
+        topA.rows[1].player_id, ordered[0].winner_id,
+        'quarter_final', 1
+      );
+      await queries.matches.insertSimple(
+        client, tId,
+        topB.rows[1].player_id, ordered[1].winner_id,
+        'quarter_final', 2
+      );
+    } else if (completedRound === 'quarter_final') {
+      const firstA = await queries.stats.getDivisionTopN(client, tId, 'A', 1);
+      const firstB = await queries.stats.getDivisionTopN(client, tId, 'B', 1);
+      // Semi finals: each division winner faces its half's quarter-final winner.
+      await queries.matches.insertSimple(
+        client, tId,
+        firstA.rows[0].player_id, ordered[0].winner_id,
+        'semi_final', 1
+      );
+      await queries.matches.insertSimple(
+        client, tId,
+        firstB.rows[0].player_id, ordered[1].winner_id,
+        'semi_final', 2
+      );
+    } else if (completedRound === 'semi_final') {
+      await queries.matches.insertSimple(
+        client, tId,
+        ordered[0].winner_id, ordered[1].winner_id,
+        'final', 1
+      );
+    }
+  };
+
   if (completed && status === 'completed') {
     const { tournament_id, round } = match;
-    if (round === 'quarter_final' || round === 'semi_final') {
+    const dividedResult = await queries.tournamentPlayers.hasDivisions(client, tournament_id);
+    const divided = dividedResult.rows[0].count > 0;
+
+    if (divided) {
+      if (round === 'play_in' || round === 'quarter_final' || round === 'semi_final') {
+        await advanceDivisionRound(tournament_id, round);
+      } else if (round === 'final') {
+        await queries.tournaments.updateStatus(client, 'completed', tournament_id);
+      }
+    } else if (round === 'quarter_final' || round === 'semi_final') {
       const roundMatches = await queries.matches.getByTournamentAndRound(client, tournament_id, round);
       if (roundMatches.rows.every(m => m.status === 'completed')) {
         if (round === 'quarter_final') {
@@ -564,7 +687,12 @@ app.put('/api/matches/:id', requireEditAccess, async (req, res) => {
 app.get('/api/tournaments/:id/standings', async (req, res) => {
   try {
     const result = await queries.stats.getStandings(pool, req.params.id);
-    const standings = result.rows.map((row, index) => ({ ...row, rank: index + 1 }));
+    const rankByDivision = {};
+    const standings = result.rows.map((row) => {
+      const key = row.division || '_';
+      rankByDivision[key] = (rankByDivision[key] || 0) + 1;
+      return { ...row, rank: rankByDivision[key] };
+    });
     res.json(standings);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -574,6 +702,25 @@ app.get('/api/tournaments/:id/standings', async (req, res) => {
 app.post('/api/tournaments/:id/playoffs', requireEditAccess, async (req, res) => {
   try {
     const { id } = req.params;
+    const dividedResult = await queries.tournamentPlayers.hasDivisions(pool, id);
+    const divided = dividedResult.rows[0].count > 0;
+
+    if (divided) {
+      const aResult = await queries.stats.getDivisionTopN(pool, id, 'A', 4);
+      const bResult = await queries.stats.getDivisionTopN(pool, id, 'B', 4);
+      if (aResult.rows.length < 4 || bResult.rows.length < 4) {
+        return res.status(400).json({ error: 'Each division needs at least 4 players for playoffs' });
+      }
+      const a = aResult.rows;
+      const b = bResult.rows;
+      // Qualification: the top two of each division advance directly, and the
+      // 3rd of one division plays the 4th of the other for the semi-final slots.
+      await queries.matches.insertSimple(pool, id, a[2].player_id, b[3].player_id, 'play_in', 1);
+      await queries.matches.insertSimple(pool, id, a[3].player_id, b[2].player_id, 'play_in', 2);
+      await queries.tournaments.updateStatus(pool, 'playoffs', id);
+      return res.json({ message: 'Playoffs started' });
+    }
+
     const standingsResult = await queries.stats.getTopN(pool, id, 8);
     if (standingsResult.rows.length < 8) {
       return res.status(400).json({ error: 'Need at least 8 players for playoffs' });

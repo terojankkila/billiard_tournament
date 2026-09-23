@@ -119,6 +119,20 @@ function RulesPage() {
           </li>
         </ul>
       </Section>
+
+      <Section title={t('rules.divisionTitle')}>
+        <ul className="list-disc list-inside space-y-1">
+          <li>{t('rules.division1')}</li>
+          <li>{t('rules.division2')}</li>
+          <li>
+            <Trans i18nKey="rules.division3">
+              Playoffs: the <strong>top 2 of each division advance directly</strong>. The 3rd of Division A plays
+              the 4th of Division B, and the 4th of Division A plays the 3rd of Division B; both winners qualify.
+              Final is played cross-division.
+            </Trans>
+          </li>
+        </ul>
+      </Section>
     </div>
   )
 }

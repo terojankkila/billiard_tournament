@@ -7,6 +7,7 @@ import StandingsTable from '../components/StandingsTable'
 import MatchCard from '../components/MatchCard'
 import PlayerSelector from '../components/PlayerSelector'
 import PerformanceChart from '../components/PerformanceChart'
+import DivisionSplitter from '../components/DivisionSplitter'
 
 function UnlockModal({ onClose, onUnlocked }) {
   const { t } = useTranslation()
@@ -75,6 +76,7 @@ function TournamentPage() {
   const [matches, setMatches] = useState([])
   const [standings, setStandings] = useState([])
   const [showPlayerSelector, setShowPlayerSelector] = useState(false)
+  const [showDivisionSplitter, setShowDivisionSplitter] = useState(false)
   const [showUnlockModal, setShowUnlockModal] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -134,6 +136,11 @@ function TournamentPage() {
     }
   }
 
+  const handleDivisionsSaved = async () => {
+    setShowDivisionSplitter(false)
+    fetchTournamentData()
+  }
+
   const handleStartTournament = async () => {
     if (window.confirm(t('tournament.confirmStart'))) {
       try {
@@ -187,6 +194,14 @@ function TournamentPage() {
     .sort((a, b) => Number(a[0]) - Number(b[0]))
   const currentRound = roundRobinRounds.find(([, rm]) => !rm.every(m => m.status === 'completed'))?.[0] ?? null
 
+  // Division format data (players fetched with their division assignment)
+  const divisionPlayers = tournamentPlayers.filter(p => p.division)
+  const hasDivisions = divisionPlayers.length > 0
+  const divisionA = divisionPlayers.filter(p => p.division === 'A')
+  const divisionB = divisionPlayers.filter(p => p.division === 'B')
+  const standingsA = standings.filter(s => s.division === 'A')
+  const standingsB = standings.filter(s => s.division === 'B')
+
   // Show player selector if in setup phase
   const showPlayerSetup = tournament.status === 'setup'
 
@@ -217,6 +232,14 @@ function TournamentPage() {
               >
                 {t('tournament.addPlayers')}
               </button>
+              {tournamentPlayers.length >= 8 && (
+                <button
+                  onClick={() => setShowDivisionSplitter(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  {hasDivisions ? t('tournament.editDivisions') : t('tournament.splitDivisions')}
+                </button>
+              )}
               {tournamentPlayers.length >= 2 && (
                 <button
                   onClick={handleStartTournament}
@@ -256,6 +279,34 @@ function TournamentPage() {
                 ))}
               </div>
             )}
+            {hasDivisions && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="bg-indigo-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-indigo-800 mb-2">
+                    {t('tournament.division', { division: 'A' })} ({divisionA.length} {t('common.players')})
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {divisionA.map((player) => (
+                      <span key={player.id} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                        {player.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-emerald-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-emerald-800 mb-2">
+                    {t('tournament.division', { division: 'B' })} ({divisionB.length} {t('common.players')})
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {divisionB.map((player) => (
+                      <span key={player.id} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                        {player.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -269,6 +320,15 @@ function TournamentPage() {
         />
       )}
 
+      {showDivisionSplitter && (
+        <DivisionSplitter
+          tournamentId={id}
+          tournamentPlayers={tournamentPlayers}
+          onClose={() => setShowDivisionSplitter(false)}
+          onSaved={handleDivisionsSaved}
+        />
+      )}
+
       {showUnlockModal && (
         <UnlockModal
           onClose={() => setShowUnlockModal(false)}
@@ -279,7 +339,20 @@ function TournamentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('tournament.standings')}</h2>
-          <StandingsTable standings={standings} />
+          {hasDivisions ? (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-indigo-800 mb-2">{t('tournament.division', { division: 'A' })}</h3>
+                <StandingsTable standings={standingsA} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-emerald-800 mb-2">{t('tournament.division', { division: 'B' })}</h3>
+                <StandingsTable standings={standingsB} />
+              </div>
+            </div>
+          ) : (
+            <StandingsTable standings={standings} />
+          )}
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('tournament.performanceTrend')}</h2>
@@ -298,6 +371,22 @@ function TournamentPage() {
             <div>
               {tournament.status === 'playoffs' && (
                 <>
+                  {matches.filter(m => m.round === 'play_in').length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium text-gray-700 mb-3">{t('tournament.qualifiers')}</h3>
+                      <div className="flex flex-wrap gap-4">
+                        {matches.filter(m => m.round === 'play_in').map((match) => (
+                          <MatchCard
+                            key={match.id}
+                            match={match}
+                            isCurrentRound
+                            canEdit={canEdit}
+                            onDataChanged={handleDataChanged}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-6">
                     <h3 className="text-lg font-medium text-gray-700 mb-3">{t('tournament.quarterFinals')}</h3>
                     <div className="flex flex-wrap gap-4">
