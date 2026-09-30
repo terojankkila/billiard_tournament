@@ -92,6 +92,8 @@ function RulesPage() {
 
       <Section title={t('rules.playingTitle')}>
         <ul className="list-disc list-inside space-y-1">
+          <li>{t('rules.playing6')}</li>
+          <li>{t('rules.playing5')}</li>
           <li>
             <Trans i18nKey="rules.playing1">
               Only matches in the <strong>current round</strong> can be started.
@@ -116,20 +118,6 @@ function RulesPage() {
               The winner of 1st vs 8th plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the
               winner of 3rd vs 6th. The two semi-final winners meet in the final, and the two semi-final losers
               play a bronze match for third place.
-            </Trans>
-          </li>
-        </ul>
-      </Section>
-
-      <Section title={t('rules.divisionTitle')}>
-        <ul className="list-disc list-inside space-y-1">
-          <li>{t('rules.division1')}</li>
-          <li>{t('rules.division2')}</li>
-          <li>
-            <Trans i18nKey="rules.division3">
-              Playoffs: the <strong>top 4 of each division advance directly</strong> and play cross-division
-              quarter finals — the 1st of Division A plays the 4th of Division B, the 2nd vs the 3rd, and so on.
-              The final is played cross-division, and the semi-final losers play a bronze match for third place.
             </Trans>
           </li>
         </ul>
