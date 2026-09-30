@@ -27,8 +27,9 @@ API.interceptors.request.use((config) => {
 })
 
 // A tournament token stops working once an admin changes the tournament
-// password. Drop it and reload so the unlock prompt is shown again instead of
-// leaving the page in a state where every edit is rejected.
+// password. Drop it and tell the app, so the page can fall back to its
+// read-only state and show the unlock prompt again instead of leaving the user
+// with edit buttons whose requests would all be rejected.
 // The verify endpoint is excluded: a wrong password there is a normal 401 and
 // the stored token may still be perfectly valid.
 API.interceptors.response.use(
@@ -36,9 +37,15 @@ API.interceptors.response.use(
   (error) => {
     const config = error.config
     const isVerifyCall = !!config?.url && /\/tournaments\/\d+\/verify$/.test(config.url)
-    if (error.response?.status === 401 && config?.headers?.['X-Tournament-Token'] && !isVerifyCall && activeTournamentId) {
-      localStorage.removeItem(`tournament_token_${activeTournamentId}`)
-      window.location.reload()
+    const tournamentId = activeTournamentId
+    if (
+      error.response?.status === 401 &&
+      config?.headers?.['X-Tournament-Token'] &&
+      !isVerifyCall &&
+      tournamentId
+    ) {
+      localStorage.removeItem(`tournament_token_${tournamentId}`)
+      window.dispatchEvent(new CustomEvent('tournament-token-revoked', { detail: { tournamentId } }))
     }
     return Promise.reject(error)
   }

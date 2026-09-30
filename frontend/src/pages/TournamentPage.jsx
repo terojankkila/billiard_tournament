@@ -106,8 +106,22 @@ function TournamentPage() {
 
   // A user can edit results if they're an admin, or if they hold a valid
   // tournament token for this tournament (obtained via the tournament password).
-  const hasTournamentToken = localStorage.getItem(`tournament_token_${id}`)
-  const canEdit = !!admin || !!hasTournamentToken
+  const [hasTournamentToken, setHasTournamentToken] = useState(() => !!localStorage.getItem(`tournament_token_${id}`))
+  const canEdit = !!admin || hasTournamentToken
+
+  // An admin changed the tournament password, so the stored token was rejected
+  // and dropped by the API layer: fall back to read-only and ask again.
+  useEffect(() => {
+    const onRevoked = (e) => {
+      if (Number(e.detail?.tournamentId) !== Number(id)) return
+      setHasTournamentToken(false)
+      setShowUnlockModal(true)
+      setShowPlayerSelector(false)
+      setShowDivisionSplitter(false)
+    }
+    window.addEventListener('tournament-token-revoked', onRevoked)
+    return () => window.removeEventListener('tournament-token-revoked', onRevoked)
+  }, [id])
 
   useEffect(() => {
     setActiveTournament(id)
@@ -144,6 +158,7 @@ function TournamentPage() {
     const result = await tournamentService.verifyPassword(id, password)
     if (result.data.valid) {
       localStorage.setItem(`tournament_token_${id}`, result.data.token)
+      setHasTournamentToken(true)
       setShowUnlockModal(false)
     } else {
       throw new Error('Invalid password')
