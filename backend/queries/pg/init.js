@@ -40,6 +40,9 @@ module.exports = {
     `ALTER TABLE matches ADD COLUMN IF NOT EXISTS round_number INTEGER;`,
     `ALTER TABLE matches ADD COLUMN IF NOT EXISTS is_started BOOLEAN DEFAULT FALSE;`,
     `ALTER TABLE tournament_players ADD COLUMN IF NOT EXISTS division VARCHAR(2);`,
+    // Bumped whenever the tournament password changes, which invalidates every
+    // tournament access token issued for the previous password.
+    `ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;`,
 
     `CREATE TABLE IF NOT EXISTS frames (
       id SERIAL PRIMARY KEY,

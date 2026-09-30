@@ -26,6 +26,24 @@ API.interceptors.request.use((config) => {
   return config
 })
 
+// A tournament token stops working once an admin changes the tournament
+// password. Drop it and reload so the unlock prompt is shown again instead of
+// leaving the page in a state where every edit is rejected.
+// The verify endpoint is excluded: a wrong password there is a normal 401 and
+// the stored token may still be perfectly valid.
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const config = error.config
+    const isVerifyCall = !!config?.url && /\/tournaments\/\d+\/verify$/.test(config.url)
+    if (error.response?.status === 401 && config?.headers?.['X-Tournament-Token'] && !isVerifyCall && activeTournamentId) {
+      localStorage.removeItem(`tournament_token_${activeTournamentId}`)
+      window.location.reload()
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const authService = {
   login: (username, password) => API.post('/auth/login', { username, password }),
   me: () => API.get('/auth/me'),
@@ -43,6 +61,7 @@ export const tournamentService = {
   getById: (id) => API.get(`/tournaments/${id}`),
   create: (data) => API.post('/tournaments', data),
   verifyPassword: (id, password) => API.post(`/tournaments/${id}/verify`, { password }),
+  changePassword: (id, password) => API.put(`/tournaments/${id}/password`, { password }),
   getPlayers: (id) => API.get(`/tournaments/${id}/players`),
   addPlayers: (id, playerIds) => API.post(`/tournaments/${id}/players`, { playerIds }),
   previewDivisions: (id) => API.post(`/tournaments/${id}/divisions/preview`),

@@ -28,8 +28,8 @@ const requireFrontend = (req, res, next) => {
 // matches, frames, and standings. Only editing a tournament's results requires
 // authentication: either a valid tournament token (obtained via the tournament
 // password) or a valid admin token. Admins can always edit scores.
-const signTournamentToken = (tournamentId) => jwt.sign(
-  { type: 'tournament', tid: tournamentId },
+const signTournamentToken = (tournamentId, tokenVersion = 0) => jwt.sign(
+  { type: 'tournament', tid: tournamentId, tv: tokenVersion },
   JWT_SECRET,
   { expiresIn: '12h' }
 );
@@ -95,6 +95,12 @@ const requireEditAccess = async (req, res, next) => {
     }
     if (Number(payload.tid) !== tournamentId) {
       return res.status(403).json({ error: 'You do not have access to this tournament' });
+    }
+    // Tokens issued for a previous password stop working once an admin changes it.
+    const versionResult = await queries.tournaments.getTokenVersion(pool, tournamentId);
+    const currentVersion = versionResult.rows[0]?.token_version ?? 0;
+    if (Number(payload.tv || 0) !== Number(currentVersion)) {
+      return res.status(401).json({ error: 'Tournament password has changed, please unlock again' });
     }
     next();
   } catch (err) {
@@ -269,7 +275,28 @@ app.post('/api/tournaments/:id/verify', async (req, res) => {
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
-    res.json({ valid: true, token: signTournamentToken(tournament.id), tournament: { id: tournament.id, name: tournament.name, status: tournament.status } });
+    res.json({ valid: true, token: signTournamentToken(tournament.id, tournament.token_version || 0), tournament: { id: tournament.id, name: tournament.name, status: tournament.status } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin changes a tournament's access password. Existing tournament tokens are
+// invalidated (token_version bump), so everyone holding the old password has to
+// unlock again with the new one.
+app.put('/api/tournaments/:id/password', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+    if (typeof password !== 'string' || password.length === 0) {
+      return res.status(400).json({ error: 'password is required' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await queries.tournaments.updatePassword(pool, hashedPassword, id);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+    res.json({ success: true, tournament: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

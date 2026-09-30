@@ -34,7 +34,13 @@
     "adminPassword": "Ylläpitäjän salasana",
     "passwordHint": "(vaaditaan tulosten lisäämiseen)",
     "create": "Luo turnaus",
-    "errorCreate": "Virhe turnauksen luonnissa:"
+    "errorCreate": "Virhe turnauksen luonnissa:",
+    "changeTournamentPassword": "Vaihda salasana",
+    "changePasswordTitle": "Vaihda turnauksen salasana",
+    "changePasswordHint": "Kaikkien vanhalla salasanalla kirjautuneiden on kirjauduttava uudelleen.",
+    "newTournamentPassword": "Uusi salasana",
+    "passwordChanged": "Turnauksen salasana vaihdettu",
+    "errorChangePassword": "Virhe salasanan vaihtamisessa"
   },
   "tournament": {
     "unlockTitle": "Avaa lukitus tulosten lisäämiseen",

@@ -67,7 +67,85 @@ function CreateTournamentModal({ onClose, onCreated }) {
   )
 }
 
-function TournamentCard({ tournament }) {
+function ChangeTournamentPasswordModal({ tournament, onClose, onChanged }) {
+  const { t } = useTranslation()
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (password !== confirm) {
+      setError(t('admin.passwordsMismatch'))
+      return
+    }
+    try {
+      await tournamentService.changePassword(tournament.id, password)
+      // This browser may hold a token issued for the old password; the backend
+      // rejects it now, so clear it and let the unlock prompt ask again.
+      localStorage.removeItem(`tournament_token_${tournament.id}`)
+      onChanged()
+    } catch (err) {
+      setError(err.response?.data?.error || t('home.errorChangePassword'))
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-1">{t('home.changePasswordTitle')}</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          {tournament.name} — {t('home.changePasswordHint')}
+        </p>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('home.newTournamentPassword')}
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('admin.confirmPassword')}
+            </label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {t('admin.updatePassword')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function TournamentCard({ tournament, onChangePassword }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
@@ -107,6 +185,14 @@ function TournamentCard({ tournament }) {
         >
           {t('home.open')}
         </button>
+        {onChangePassword && (
+          <button
+            onClick={onChangePassword}
+            className="w-full mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+          >
+            {t('home.changeTournamentPassword')}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -117,6 +203,8 @@ function HomePage() {
   const { admin } = useAuth()
   const [tournaments, setTournaments] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
 
   const fetchTournaments = async () => {
@@ -139,6 +227,12 @@ function HomePage() {
     fetchTournaments()
   }
 
+  const handlePasswordChanged = () => {
+    setNotice(t('home.passwordChanged'))
+    setTimeout(() => setNotice(''), 4000)
+    setPasswordTarget(null)
+  }
+
   return (
     <div>
       <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
@@ -153,6 +247,12 @@ function HomePage() {
         )}
       </div>
 
+      {notice && (
+        <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-green-800">
+          {notice}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -166,7 +266,11 @@ function HomePage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tournaments.map((tournament) => (
-            <TournamentCard key={tournament.id} tournament={tournament} />
+            <TournamentCard
+              key={tournament.id}
+              tournament={tournament}
+              onChangePassword={admin ? () => setPasswordTarget(tournament) : null}
+            />
           ))}
         </div>
       )}
@@ -175,6 +279,14 @@ function HomePage() {
         <CreateTournamentModal
           onClose={() => setShowCreateModal(false)}
           onCreated={handleTournamentCreated}
+        />
+      )}
+
+      {passwordTarget && (
+        <ChangeTournamentPasswordModal
+          tournament={passwordTarget}
+          onClose={() => setPasswordTarget(null)}
+          onChanged={handlePasswordChanged}
         />
       )}
     </div>

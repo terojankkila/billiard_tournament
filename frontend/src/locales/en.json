@@ -34,7 +34,13 @@
     "adminPassword": "Admin Password",
     "passwordHint": "(required to add results)",
     "create": "Create Tournament",
-    "errorCreate": "Error creating tournament:"
+    "errorCreate": "Error creating tournament:",
+    "changeTournamentPassword": "Change Password",
+    "changePasswordTitle": "Change Tournament Password",
+    "changePasswordHint": "Everyone with the old password will need to unlock again.",
+    "newTournamentPassword": "New Password",
+    "passwordChanged": "Tournament password updated",
+    "errorChangePassword": "Error changing password"
   },
   "tournament": {
     "unlockTitle": "Unlock to add results",
