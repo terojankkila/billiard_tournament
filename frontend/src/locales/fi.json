@@ -6,7 +6,9 @@
     "rules": "Säännöt",
     "adminPanel": "Ylläpitopaneeli",
     "logout": "Kirjaudu ulos",
-    "adminLogin": "Ylläpitäjän kirjautuminen"
+    "adminLogin": "Ylläpitäjän kirjautuminen",
+    "openMenu": "Avaa valikko",
+    "closeMenu": "Sulje valikko"
   },
   "common": {
     "cancel": "Peruuta",
@@ -69,6 +71,7 @@
     "performanceTrend": "Suorituskehitys",
     "playoffMatches": "Pudotuspeliottelut",
     "playoffBracket": "Pudotuspelien rakenne",
+    "swipeBracketHint": "Pyöräytä nähdäksesi koko kaavio",
     "pending": "Tulossa",
     "roundRobinMatches": "Runkosarjaottelut",
     "quarterFinals": "Puolivälierät",
@@ -76,6 +79,9 @@
     "final": "Finaali",
     "bronze": "Pronssiottelu",
     "champion": "🏆 Turnauksen mestari",
+    "place1": "1. sija",
+    "place2": "2. sija",
+    "place3": "3. sija",
     "roundRobinResults": "Runkosarjan tulokset",
     "roundRobin": "Runkosarja",
     "round": "Kierros {{round}}",

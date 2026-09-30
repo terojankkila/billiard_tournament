@@ -21,7 +21,7 @@ function CreateTournamentModal({ onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">{t('home.createTitle')}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -94,7 +94,7 @@ function TournamentCard({ tournament }) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
           <h3 className="text-lg font-bold text-gray-900">{tournament.name}</h3>
           {getStatusBadge(tournament.status)}
         </div>
@@ -141,7 +141,7 @@ function HomePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t('home.title')}</h1>
         {admin && (
           <button

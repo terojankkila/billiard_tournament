@@ -177,45 +177,47 @@ function AdminManagement() {
 
       {error && !showCreate && <p className="text-red-500 text-sm mb-3">{error}</p>}
 
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.username')}</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.type')}</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.created')}</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.actions')}</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {admins.map((a) => (
-            <tr key={a.id}>
-              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                {a.username} {a.id === admin?.id && <span className="text-gray-400">{t('admin.you')}</span>}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {a.is_default ? (
-                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs">{t('admin.default')}</span>
-                ) : (
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{t('admin.admin')}</span>
-                )}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                {new Date(a.created_at).toLocaleDateString()}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm">
-                {a.id !== admin?.id && (
-                  <button
-                    onClick={() => handleDelete(a.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    {t('common.delete')}
-                  </button>
-                )}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.username')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.type')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.created')}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.actions')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {admins.map((a) => (
+              <tr key={a.id}>
+                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {a.username} {a.id === admin?.id && <span className="text-gray-400">{t('admin.you')}</span>}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {a.is_default ? (
+                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs">{t('admin.default')}</span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{t('admin.admin')}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(a.created_at).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                  {a.id !== admin?.id && (
+                    <button
+                      onClick={() => handleDelete(a.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      {t('common.delete')}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

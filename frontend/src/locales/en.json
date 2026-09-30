@@ -6,7 +6,9 @@
     "rules": "Rules",
     "adminPanel": "Admin Panel",
     "logout": "Logout",
-    "adminLogin": "Admin Login"
+    "adminLogin": "Admin Login",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "common": {
     "cancel": "Cancel",
@@ -69,6 +71,7 @@
     "performanceTrend": "Performance Trend",
     "playoffMatches": "Playoff Matches",
     "playoffBracket": "Playoff Bracket",
+    "swipeBracketHint": "Swipe to see the full bracket",
     "pending": "Pending",
     "roundRobinMatches": "Round Robin Matches",
     "quarterFinals": "Quarter Finals",
@@ -76,6 +79,9 @@
     "final": "Final",
     "bronze": "Bronze Game",
     "champion": "🏆 Tournament Champion",
+    "place1": "1st place",
+    "place2": "2nd place",
+    "place3": "3rd place",
     "roundRobinResults": "Round Robin Results",
     "roundRobin": "Round Robin",
     "round": "Round {{round}}",

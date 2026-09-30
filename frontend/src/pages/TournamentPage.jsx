@@ -30,7 +30,7 @@ function UnlockModal({ onClose, onUnlocked }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">{t('tournament.unlockTitle')}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -61,6 +61,29 @@ function UnlockModal({ onClose, onUnlocked }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function Podium({ champion, second, third }) {
+  const { t } = useTranslation()
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+      <h2 className="text-lg font-bold text-green-800 mb-3">{t('tournament.champion')}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-lg border border-green-200 p-3">
+          <div className="text-xs uppercase tracking-wider text-green-600 mb-1">{t('tournament.place1')}</div>
+          <div className="text-xl font-bold text-gray-900 break-words">{champion}</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="text-xs uppercase tracking-wider text-gray-500 mb-1">{t('tournament.place2')}</div>
+          <div className="text-lg font-semibold text-gray-700 break-words">{second || '—'}</div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-3">
+          <div className="text-xs uppercase tracking-wider text-gray-500 mb-1">{t('tournament.place3')}</div>
+          <div className="text-lg font-semibold text-gray-700 break-words">{third || '—'}</div>
+        </div>
       </div>
     </div>
   )
@@ -209,16 +232,28 @@ function TournamentPage() {
   // Show player selector if in setup phase
   const showPlayerSetup = tournament.status === 'setup'
 
+  // Podium: champion = final winner, second = final loser, third = bronze winner.
+  // The tournament is only marked completed once both the final and the bronze
+  // game are done, so both places are normally available at this point.
+  const completedFinal = matches.find(m => m.round === 'final' && m.status === 'completed')
+  const completedBronze = matches.find(m => m.round === 'bronze' && m.status === 'completed')
+  const showPodium = tournament.status === 'completed' && !!completedFinal
+  const championName = completedFinal?.winner_name ?? null
+  const secondPlaceName = completedFinal
+    ? (completedFinal.winner_id === completedFinal.player1_id ? completedFinal.player2_name : completedFinal.player1_name)
+    : null
+  const thirdPlaceName = completedBronze?.winner_name ?? null
+
   return (
     <div>
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-wrap justify-between items-start gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{tournament.name}</h1>
           <span className="text-sm text-gray-500">
             {t('tournament.status')} {tournament.status === 'setup' ? t('tournament.statusSetup') : tournament.status === 'round_robin' ? t('tournament.statusRoundRobin') : tournament.status === 'playoffs' ? t('tournament.statusPlayoffs') : t('tournament.statusCompleted')}
           </span>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           {!canEdit && (
             <button
               onClick={() => setShowUnlockModal(true)}
@@ -340,6 +375,8 @@ function TournamentPage() {
         />
       )}
 
+      {showPodium && <Podium champion={championName} second={secondPlaceName} third={thirdPlaceName} />}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('tournament.standings')}</h2>
@@ -369,6 +406,7 @@ function TournamentPage() {
           {(tournament.status === 'playoffs' || (tournament.status === 'completed' && matches.some(m => m.round !== 'round_robin'))) && (
             <div className="mb-8">
               <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('tournament.playoffBracket')}</h2>
+              <p className="text-xs text-gray-400 mb-2 lg:hidden">{t('tournament.swipeBracketHint')}</p>
               <PlayoffBracket matches={matches} divisionByPlayer={divisionByPlayer} />
             </div>
           )}
@@ -440,14 +478,6 @@ function TournamentPage() {
                     </div>
                   )}
                 </>
-              )}
-              {tournament.status === 'completed' && matches.some(m => m.round === 'final' && m.status === 'completed') && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-green-800 mb-2">{t('tournament.champion')}</h3>
-                  <p className="text-green-700 text-xl font-semibold">
-                    {matches.find(m => m.round === 'final' && m.status === 'completed').winner_name}
-                  </p>
-                </div>
               )}
               <h3 className="text-lg font-medium text-gray-700 mb-3">
                 {tournament.status === 'playoffs' || tournament.status === 'completed' ? t('tournament.roundRobinResults') : t('tournament.roundRobin')}

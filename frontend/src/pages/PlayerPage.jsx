@@ -15,46 +15,48 @@ function AllPlayersStats({ stats, onSelectPlayer }) {
         <p className="text-gray-500">{t('players.noData')}</p>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colPlayer')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesPlayed')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesWon')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchWinPct')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesWon')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesLost')}</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFrameWinPct')}</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {stats.map((s, i) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-blue-50 cursor-pointer"
-                  onClick={() => onSelectPlayer(String(s.id))}
-                >
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{i + 1}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{s.name}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.matches_played}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 text-center font-medium">{s.matches_won}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    <span className={`font-medium ${s.match_win_pct >= 50 ? 'text-green-600' : 'text-red-500'}`}>
-                      {s.match_win_pct}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.frames_won}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.frames_lost}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                    <span className={`font-medium ${s.frame_win_pct >= 50 ? 'text-green-600' : 'text-red-500'}`}>
-                      {s.frame_win_pct}%
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colPlayer')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesPlayed')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesWon')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchWinPct')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesWon')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesLost')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFrameWinPct')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {stats.map((s, i) => (
+                  <tr
+                    key={s.id}
+                    className="hover:bg-blue-50 cursor-pointer"
+                    onClick={() => onSelectPlayer(String(s.id))}
+                  >
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{i + 1}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{s.name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.matches_played}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 text-center font-medium">{s.matches_won}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                      <span className={`font-medium ${s.match_win_pct >= 50 ? 'text-green-600' : 'text-red-500'}`}>
+                        {s.match_win_pct}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.frames_won}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{s.frames_lost}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                      <span className={`font-medium ${s.frame_win_pct >= 50 ? 'text-green-600' : 'text-red-500'}`}>
+                        {s.frame_win_pct}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -173,28 +175,30 @@ function PlayerPage() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">{t('players.history')}</h3>
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colTournament')}</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesPlayed')}</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesWon')}</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesWon')}</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesLost')}</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {playerStats.map((tournament) => (
-                    <tr key={tournament.tournament_id}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{tournament.tournament_name}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.matches_played}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.matches_won}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.frames_won}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.frames_lost}</td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colTournament')}</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesPlayed')}</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colMatchesWon')}</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesWon')}</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('players.colFramesLost')}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {playerStats.map((tournament) => (
+                      <tr key={tournament.tournament_id}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{tournament.tournament_name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.matches_played}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.matches_won}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.frames_won}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center">{tournament.frames_lost}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>

@@ -108,7 +108,7 @@ function DivisionSplitter({ tournamentId, tournamentPlayers, onClose, onSaved })
           <p className="text-sm text-gray-500">{t('tournament.balanceHint')}</p>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
           {renderDivision('A')}
           {renderDivision('B')}
         </div>

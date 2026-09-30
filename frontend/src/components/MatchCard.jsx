@@ -69,7 +69,7 @@ function MatchCard({ match, isCurrentRound = false, canEdit = true, onDataChange
   const scoreReached = frames.length >= 5 || frames.filter(f => f.winner_id === match.player1_id).length >= 3 || frames.filter(f => f.winner_id === match.player2_id).length >= 3
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 w-80 m-2 border border-gray-200">
+    <div className="bg-white rounded-lg shadow-md p-4 w-full sm:w-80 sm:m-2 border border-gray-200">
       <div className="text-center text-sm font-medium text-gray-600 mb-2">
         {getMatchTitle(match.round, match.round_number)}
       </div>

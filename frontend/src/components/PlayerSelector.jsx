@@ -36,7 +36,7 @@ function PlayerSelector({ players, selectedPlayerIds, onAdd, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 max-h-[40rem] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-lg font-bold text-gray-900">{t('playerSelector.title')}</h3>
           <button
