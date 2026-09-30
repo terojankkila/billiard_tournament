@@ -8,6 +8,7 @@ import MatchCard from '../components/MatchCard'
 import PlayerSelector from '../components/PlayerSelector'
 import PerformanceChart from '../components/PerformanceChart'
 import DivisionSplitter from '../components/DivisionSplitter'
+import PlayoffBracket from '../components/PlayoffBracket'
 
 function UnlockModal({ onClose, onUnlocked }) {
   const { t } = useTranslation()
@@ -201,6 +202,9 @@ function TournamentPage() {
   const divisionB = divisionPlayers.filter(p => p.division === 'B')
   const standingsA = standings.filter(s => s.division === 'A')
   const standingsB = standings.filter(s => s.division === 'B')
+  const divisionByPlayer = hasDivisions
+    ? Object.fromEntries(standings.filter(s => s.division).map(s => [s.player_id, { division: s.division, rank: s.rank }]))
+    : null
 
   // Show player selector if in setup phase
   const showPlayerSetup = tournament.status === 'setup'
@@ -362,6 +366,12 @@ function TournamentPage() {
 
       {tournament.status !== 'setup' && (
         <div>
+          {(tournament.status === 'playoffs' || (tournament.status === 'completed' && matches.some(m => m.round !== 'round_robin'))) && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('tournament.playoffBracket')}</h2>
+              <PlayoffBracket matches={matches} divisionByPlayer={divisionByPlayer} />
+            </div>
+          )}
           <h2 className="text-xl font-semibold text-gray-800 mb-2">
             {tournament.status === 'playoffs' || matches.some(m => m.round !== 'round_robin') ? t('tournament.playoffMatches') : t('tournament.roundRobinMatches')}
           </h2>
