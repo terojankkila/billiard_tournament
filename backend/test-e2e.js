@@ -1,4 +1,4 @@
-const API = 'http://localhost:3001/api';
+const API = process.env.API_URL || 'http://localhost:3001/api';
 const BASE = API;
 
 const APP_KEY = 'dev-frontend-key';
@@ -291,15 +291,34 @@ async function run() {
   }
   console.log('Semi finals completed');
 
-  // Check final auto-created
+  // Check final + bronze auto-created
   tMatches = await request(`/tournaments/${tourney.id}/matches`);
+  const doneSfs = tMatches.filter(m => m.round === 'semi_final');
   let final = tMatches.filter(m => m.round === 'final');
+  let bronze = tMatches.filter(m => m.round === 'bronze');
   console.log('Final created:', final.length, '(expected 1)');
   if (final.length !== 1) throw new Error('Expected 1 final match');
+  if (bronze.length !== 1) throw new Error('Expected 1 bronze match');
+  const loserOf = (m) => (m.winner_id === m.player1_id ? m.player2_id : m.player1_id);
+  const bronzePlayers = [bronze[0].player1_id, bronze[0].player2_id];
+  const expectedLosers = [loserOf(doneSfs[0]), loserOf(doneSfs[1])];
+  if (bronzePlayers.includes(expectedLosers[0]) && bronzePlayers.includes(expectedLosers[1]) && expectedLosers[0] !== expectedLosers[1]) {
+    console.log('Bronze pairing verified: semi-final losers paired');
+  } else {
+    throw new Error('Bronze match must pair the two semi-final losers');
+  }
 
   // Complete final
   await request(`/matches/${final[0].id}`, 'PUT', { player1_frames: 3, player2_frames: 2 });
   console.log('Final completed');
+
+  const afterFinalOnly = await request(`/tournaments/${tourney.id}`);
+  if (afterFinalOnly.status !== 'playoffs') throw new Error('Tournament should stay in playoffs until bronze match is done');
+  console.log('Status stays playoffs until bronze completed OK');
+
+  // Complete bronze (third place)
+  await request(`/matches/${bronze[0].id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  console.log('Bronze match completed');
 
   // Verify tournament status
   const finalTourney = await request(`/tournaments/${tourney.id}`);
@@ -391,31 +410,19 @@ async function run() {
   const labelOf = (id) => `${byId[id].division}${byId[id].rank}`;
   console.log('Per-division standings OK');
 
-  // Playoffs: top 2 of each division advance directly, 3rd/4th qualify cross-division
+  // Playoffs: the best four of each division advance and play cross-division quarter finals
   await request(`/tournaments/${divT.id}/playoffs`, 'POST');
   divMatches = await request(`/tournaments/${divT.id}/matches`);
-  const playIns = divMatches.filter(m => m.round === 'play_in').sort((a, b) => a.match_order - b.match_order);
-  if (playIns.length !== 2) throw new Error(`Expected 2 play-in matches, got ${playIns.length}`);
-  playIns.forEach((m, i) => {
-    const labels = [m.player1_id, m.player2_id].map(labelOf).sort().join(',');
-    const expected = i === 0 ? 'A3,B4' : 'A4,B3';
-    if (labels !== expected) throw new Error(`Play-in ${i + 1}: got ${labels}, expected ${expected}`);
-  });
-  console.log('Play-in qualification OK: A3 vs B4, A4 vs B3');
-
-  // Play-in winners join the division runners-up in the quarter finals
-  for (const m of playIns) {
-    await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
-  }
-  divMatches = await request(`/tournaments/${divT.id}/matches`);
-  const playInWinners = playIns.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
   let qfs = divMatches.filter(m => m.round === 'quarter_final').sort((a, b) => a.match_order - b.match_order);
-  if (qfs.length !== 2) throw new Error(`Expected 2 quarter finals, got ${qfs.length}`);
-  if (labelOf(qfs[0].player1_id) !== 'A2' || qfs[0].player2_id !== playInWinners[0]) throw new Error('Quarter final 1 must be 2A vs play-in 1 winner');
-  if (labelOf(qfs[1].player1_id) !== 'B2' || qfs[1].player2_id !== playInWinners[1]) throw new Error('Quarter final 2 must be 2B vs play-in 2 winner');
-  console.log('Quarter finals seeded from division standings OK');
+  if (qfs.length !== 4) throw new Error(`Expected 4 quarter finals, got ${qfs.length}`);
+  const expectedQfPairs = ['A1,B4', 'A2,B3', 'A3,B2', 'A4,B1'];
+  qfs.forEach((m, i) => {
+    const labels = [m.player1_id, m.player2_id].map(labelOf).sort().join(',');
+    if (labels !== expectedQfPairs[i]) throw new Error(`Quarter final ${i + 1}: got ${labels}, expected ${expectedQfPairs[i]}`);
+  });
+  console.log('Cross-division quarter finals OK: A1 vs B4, A2 vs B3, A3 vs B2, A4 vs B1');
 
-  // Division winners enter the semi finals
+  // Quarter final winners meet in the semi finals (1st pairing with 4th, 2nd with 3rd)
   for (const m of qfs) {
     await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
   }
@@ -423,9 +430,9 @@ async function run() {
   const qfWinners = qfs.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
   const sfs = divMatches.filter(m => m.round === 'semi_final').sort((a, b) => a.match_order - b.match_order);
   if (sfs.length !== 2) throw new Error(`Expected 2 semi finals, got ${sfs.length}`);
-  if (labelOf(sfs[0].player1_id) !== 'A1' || sfs[0].player2_id !== qfWinners[0]) throw new Error('Semi final 1 must be 1A vs quarter final 1 winner');
-  if (labelOf(sfs[1].player1_id) !== 'B1' || sfs[1].player2_id !== qfWinners[1]) throw new Error('Semi final 2 must be 1B vs quarter final 2 winner');
-  console.log('Semi finals pair division winners with quarter-final winners OK');
+  if (sfs[0].player1_id !== qfWinners[0] || sfs[0].player2_id !== qfWinners[3]) throw new Error('Semi final 1 must pair quarter finals 1 and 4 winners');
+  if (sfs[1].player1_id !== qfWinners[1] || sfs[1].player2_id !== qfWinners[2]) throw new Error('Semi final 2 must pair quarter finals 2 and 3 winners');
+  console.log('Semi finals pair cross-division quarter-final winners OK');
 
   for (const m of sfs) {
     await request(`/matches/${m.id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
@@ -433,9 +440,21 @@ async function run() {
   divMatches = await request(`/tournaments/${divT.id}/matches`);
   const sfWinners = sfs.map(m => divMatches.find(dm => dm.id === m.id).winner_id);
   const divFinal = divMatches.filter(m => m.round === 'final');
+  const divBronze = divMatches.filter(m => m.round === 'bronze');
   if (divFinal.length !== 1) throw new Error(`Expected 1 final, got ${divFinal.length}`);
+  if (divBronze.length !== 1) throw new Error(`Expected 1 bronze match, got ${divBronze.length}`);
   if (divFinal[0].player1_id !== sfWinners[0] || divFinal[0].player2_id !== sfWinners[1]) throw new Error('Final must pair the semi-final winners');
+  const dibSfs = divMatches.filter(m => m.round === 'semi_final');
+  const divLoserOf = (m) => (m.winner_id === m.player1_id ? m.player2_id : m.player1_id);
+  const divBronzePlayers = [divBronze[0].player1_id, divBronze[0].player2_id];
+  const expectedDivLosers = [divLoserOf(dibSfs[0]), divLoserOf(dibSfs[1])];
+  if (divBronzePlayers.includes(expectedDivLosers[0]) && divBronzePlayers.includes(expectedDivLosers[1]) && expectedDivLosers[0] !== expectedDivLosers[1]) {
+    console.log('Bronze pairing verified: semi-final losers paired');
+  } else {
+    throw new Error('Bronze match must pair the two semi-final losers');
+  }
   await request(`/matches/${divFinal[0].id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
+  await request(`/matches/${divBronze[0].id}`, 'PUT', { player1_frames: 3, player2_frames: 1 });
   const divTourneyDone = await request(`/tournaments/${divT.id}`);
   if (divTourneyDone.status !== 'completed') throw new Error('Division tournament should be completed');
   console.log('Division tournament completed OK');

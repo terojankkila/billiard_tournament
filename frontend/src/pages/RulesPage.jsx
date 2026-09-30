@@ -114,7 +114,8 @@ function RulesPage() {
           <li>
             <Trans i18nKey="rules.playoffs3">
               The winner of 1st vs 8th plays the winner of 4th vs 5th, and the winner of 2nd vs 7th plays the
-              winner of 3rd vs 6th. The two semi-final winners meet in the final.
+              winner of 3rd vs 6th. The two semi-final winners meet in the final, and the two semi-final losers
+              play a bronze match for third place.
             </Trans>
           </li>
         </ul>
@@ -126,9 +127,9 @@ function RulesPage() {
           <li>{t('rules.division2')}</li>
           <li>
             <Trans i18nKey="rules.division3">
-              Playoffs: the <strong>top 2 of each division advance directly</strong>. The 3rd of Division A plays
-              the 4th of Division B, and the 4th of Division A plays the 3rd of Division B; both winners qualify.
-              Final is played cross-division.
+              Playoffs: the <strong>top 4 of each division advance directly</strong> and play cross-division
+              quarter finals — the 1st of Division A plays the 4th of Division B, the 2nd vs the 3rd, and so on.
+              The final is played cross-division, and the semi-final losers play a bronze match for third place.
             </Trans>
           </li>
         </ul>

@@ -450,6 +450,21 @@ app.get('/api/tournaments/:id/matches', async (req, res) => {
 });
 
 // Recompute a match's score, status, and winner from its frame records.
+const loserOf = (match) =>
+  (match.winner_id === match.player1_id ? match.player2_id : match.player1_id);
+
+// A tournament is complete once the final and the bronze (3rd place) match are done.
+async function maybeCompletePlayoffs(client, tournamentId) {
+  const finalRes = await queries.matches.getByTournamentAndRound(client, tournamentId, 'final');
+  const bronzeRes = await queries.matches.getByTournamentAndRound(client, tournamentId, 'bronze');
+  const finals = finalRes.rows;
+  const bronzes = bronzeRes.rows;
+  if (finals.length === 0) return;
+  if (bronzes.length === 0) return;
+  const allDone = finals.every(m => m.status === 'completed') && bronzes.every(m => m.status === 'completed');
+  if (allDone) await queries.tournaments.updateStatus(client, 'completed', tournamentId);
+}
+
 async function recomputeMatch(client, matchId) {
   const matchResult = await queries.matches.getById(client, matchId);
   const match = matchResult.rows[0];
@@ -473,32 +488,20 @@ async function recomputeMatch(client, matchId) {
     if (!roundMatches.rows.every(m => m.status === 'completed')) return;
     const ordered = roundMatches.rows;
 
-    if (completedRound === 'play_in') {
-      const topA = await queries.stats.getDivisionTopN(client, tId, 'A', 2);
-      const topB = await queries.stats.getDivisionTopN(client, tId, 'B', 2);
-      // Quarter finals: each division's runner-up hosts the play-in winner from its half.
+    if (completedRound === 'quarter_final') {
+      const round1 = roundMatches.rows[0];
+      const round2 = roundMatches.rows[1];
+      const round3 = roundMatches.rows[2];
+      const round4 = roundMatches.rows[3];
+      // Semi finals: cross-division quarter-final winners meet (1st pairing with 4th, 2nd with 3rd).
       await queries.matches.insertSimple(
         client, tId,
-        topA.rows[1].player_id, ordered[0].winner_id,
-        'quarter_final', 1
-      );
-      await queries.matches.insertSimple(
-        client, tId,
-        topB.rows[1].player_id, ordered[1].winner_id,
-        'quarter_final', 2
-      );
-    } else if (completedRound === 'quarter_final') {
-      const firstA = await queries.stats.getDivisionTopN(client, tId, 'A', 1);
-      const firstB = await queries.stats.getDivisionTopN(client, tId, 'B', 1);
-      // Semi finals: each division winner faces its half's quarter-final winner.
-      await queries.matches.insertSimple(
-        client, tId,
-        firstA.rows[0].player_id, ordered[0].winner_id,
+        round1.winner_id, round4.winner_id,
         'semi_final', 1
       );
       await queries.matches.insertSimple(
         client, tId,
-        firstB.rows[0].player_id, ordered[1].winner_id,
+        round2.winner_id, round3.winner_id,
         'semi_final', 2
       );
     } else if (completedRound === 'semi_final') {
@@ -506,6 +509,11 @@ async function recomputeMatch(client, matchId) {
         client, tId,
         ordered[0].winner_id, ordered[1].winner_id,
         'final', 1
+      );
+      await queries.matches.insertSimple(
+        client, tId,
+        loserOf(ordered[0]), loserOf(ordered[1]),
+        'bronze', 1
       );
     }
   };
@@ -516,10 +524,10 @@ async function recomputeMatch(client, matchId) {
     const divided = dividedResult.rows[0].count > 0;
 
     if (divided) {
-      if (round === 'play_in' || round === 'quarter_final' || round === 'semi_final') {
+      if (round === 'quarter_final' || round === 'semi_final') {
         await advanceDivisionRound(tournament_id, round);
-      } else if (round === 'final') {
-        await queries.tournaments.updateStatus(client, 'completed', tournament_id);
+      } else if (round === 'final' || round === 'bronze') {
+        await maybeCompletePlayoffs(client, tournament_id);
       }
     } else if (round === 'quarter_final' || round === 'semi_final') {
       const roundMatches = await queries.matches.getByTournamentAndRound(client, tournament_id, round);
@@ -541,10 +549,15 @@ async function recomputeMatch(client, matchId) {
             roundMatches.rows[0].winner_id, roundMatches.rows[1].winner_id,
             'final', 1
           );
+          await queries.matches.insertSimple(
+            client, tournament_id,
+            loserOf(roundMatches.rows[0]), loserOf(roundMatches.rows[1]),
+            'bronze', 1
+          );
         }
       }
-    } else if (round === 'final') {
-      await queries.tournaments.updateStatus(client, 'completed', tournament_id);
+    } else if (round === 'final' || round === 'bronze') {
+      await maybeCompletePlayoffs(client, tournament_id);
     }
   }
 
@@ -713,10 +726,18 @@ app.post('/api/tournaments/:id/playoffs', requireEditAccess, async (req, res) =>
       }
       const a = aResult.rows;
       const b = bResult.rows;
-      // Qualification: the top two of each division advance directly, and the
-      // 3rd of one division plays the 4th of the other for the semi-final slots.
-      await queries.matches.insertSimple(pool, id, a[2].player_id, b[3].player_id, 'play_in', 1);
-      await queries.matches.insertSimple(pool, id, a[3].player_id, b[2].player_id, 'play_in', 2);
+      // The best four of each division advance: 1st of one division meets the
+      // 4th of the other, 2nd meets the 3rd, and so on.
+      const divisionQuarterFinals = [
+        { player1: a[0].player_id, player2: b[3].player_id },
+        { player1: a[1].player_id, player2: b[2].player_id },
+        { player1: a[2].player_id, player2: b[1].player_id },
+        { player1: a[3].player_id, player2: b[0].player_id },
+      ];
+      for (let i = 0; i < divisionQuarterFinals.length; i++) {
+        const { player1, player2 } = divisionQuarterFinals[i];
+        await queries.matches.insertSimple(pool, id, player1, player2, 'quarter_final', i + 1);
+      }
       await queries.tournaments.updateStatus(pool, 'playoffs', id);
       return res.json({ message: 'Playoffs started' });
     }

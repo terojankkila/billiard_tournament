@@ -57,9 +57,9 @@ function MatchCard({ match, isCurrentRound = false, canEdit = true, onDataChange
   const getMatchTitle = (round, roundNumber) => {
     if (round === 'round_robin') return t('matchCard.round', { round: roundNumber || '-' })
     switch (round) {
-      case 'play_in': return t('matchCard.playIn')
       case 'quarter_final': return t('matchCard.quarterFinal')
       case 'semi_final': return t('matchCard.semiFinal')
+      case 'bronze': return t('matchCard.bronze')
       case 'final': return t('matchCard.final')
       default: return round
     }

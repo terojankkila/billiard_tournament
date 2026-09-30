@@ -363,30 +363,14 @@ function TournamentPage() {
       {tournament.status !== 'setup' && (
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            {tournament.status === 'playoffs' ? t('tournament.playoffMatches') : t('tournament.roundRobinMatches')}
+            {tournament.status === 'playoffs' || matches.some(m => m.round !== 'round_robin') ? t('tournament.playoffMatches') : t('tournament.roundRobinMatches')}
           </h2>
           {matches.length === 0 ? (
             <p className="text-gray-500">{t('common.noMatchesYet')}</p>
           ) : (
             <div>
-              {tournament.status === 'playoffs' && (
+              {(tournament.status === 'playoffs' || (tournament.status === 'completed' && matches.some(m => m.round !== 'round_robin'))) && (
                 <>
-                  {matches.filter(m => m.round === 'play_in').length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium text-gray-700 mb-3">{t('tournament.qualifiers')}</h3>
-                      <div className="flex flex-wrap gap-4">
-                        {matches.filter(m => m.round === 'play_in').map((match) => (
-                          <MatchCard
-                            key={match.id}
-                            match={match}
-                            isCurrentRound
-                            canEdit={canEdit}
-                            onDataChanged={handleDataChanged}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   <div className="mb-6">
                     <h3 className="text-lg font-medium text-gray-700 mb-3">{t('tournament.quarterFinals')}</h3>
                     <div className="flex flex-wrap gap-4">
@@ -429,6 +413,22 @@ function TournamentPage() {
                       ))}
                     </div>
                   </div>
+                  {matches.filter(m => m.round === 'bronze').length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-medium text-gray-700 mb-3">{t('tournament.bronze')}</h3>
+                      <div className="flex flex-wrap gap-4">
+                        {matches.filter(m => m.round === 'bronze').map((match) => (
+                          <MatchCard
+                            key={match.id}
+                            match={match}
+                            isCurrentRound
+                            canEdit={canEdit}
+                            onDataChanged={handleDataChanged}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               {tournament.status === 'completed' && matches.some(m => m.round === 'final' && m.status === 'completed') && (
