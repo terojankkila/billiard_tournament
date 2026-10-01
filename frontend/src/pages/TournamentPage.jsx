@@ -9,6 +9,7 @@ import PlayerSelector from '../components/PlayerSelector'
 import PerformanceChart from '../components/PerformanceChart'
 import DivisionSplitter from '../components/DivisionSplitter'
 import PlayoffBracket from '../components/PlayoffBracket'
+import PasswordInput from '../components/PasswordInput'
 
 function UnlockModal({ onClose, onUnlocked }) {
   const { t } = useTranslation()
@@ -35,11 +36,10 @@ function UnlockModal({ onClose, onUnlocked }) {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('tournament.password')}</label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="current-password"
               required
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}

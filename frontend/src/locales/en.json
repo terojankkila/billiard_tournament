@@ -13,6 +13,8 @@
   "common": {
     "cancel": "Cancel",
     "delete": "Delete",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "completed": "Completed",
     "inProgress": "In Progress",
     "noMatchesYet": "No matches yet",

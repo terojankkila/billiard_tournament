@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { adminService, authService } from '../services/api'
+import PasswordInput from '../components/PasswordInput'
 
 function ChangePassword({ onDone }) {
   const { t } = useTranslation()
@@ -40,31 +41,28 @@ function ChangePassword({ onDone }) {
       <form onSubmit={handleSubmit} className="max-w-sm space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.currentPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={current}
             onChange={(e) => setCurrent(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoComplete="current-password"
             required
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.newPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={next}
             onChange={(e) => setNext(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoComplete="new-password"
             required
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.confirmPassword')}</label>
-          <input
-            type="password"
+          <PasswordInput
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            autoComplete="new-password"
             required
           />
         </div>
@@ -150,12 +148,11 @@ function AdminManagement() {
               className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t('admin.password')}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="new-password"
               required
             />
           </div>

@@ -13,6 +13,8 @@
   "common": {
     "cancel": "Peruuta",
     "delete": "Poista",
+    "showPassword": "Näytä salasana",
+    "hidePassword": "Piilota salasana",
     "completed": "Päättynyt",
     "inProgress": "Käynnissä",
     "noMatchesYet": "Ei otteluita vielä",
